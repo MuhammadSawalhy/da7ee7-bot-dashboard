@@ -3,7 +3,7 @@
 
 {% block content %}
 
-<form method="POST">
+<form method="POST" action="{% url 'broadcast_POST' %}">
     {% csrf_token%}
     <textarea
       class="form-control col-lg-6"

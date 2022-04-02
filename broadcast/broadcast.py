@@ -13,12 +13,11 @@ TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
 
 def get_message_process(message):
     return deque([
-        "/start",
-        "/langar",
-        '🔐 المشرف',
-        '📤 البريد المرسل',
+        "/langen",
+        "📤 Mailing",
         message,
-        '✅ إرسال'
+        '✅ Send',
+        "/langar"
     ])
 
 

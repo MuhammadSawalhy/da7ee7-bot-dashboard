@@ -1,6 +1,8 @@
+
 from django.urls import path
-from .views import broadcast
+from . import views
 
 urlpatterns = [
-    path("", broadcast, name="broadcast")
+    path("", views.broadcast_page, name="broadcast"),
+    path("message/", views.broadcast, name="broadcast_POST")
 ]
