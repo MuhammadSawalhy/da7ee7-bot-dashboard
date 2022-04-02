@@ -4,6 +4,7 @@ django-compat==1.0.15
 django-crispy-forms==1.14.0
 django-stubs==1.10.1
 django-stubs-ext==0.4.0
+gunicorn==20.1.0
 mypy==0.942
 mypy-extensions==0.4.3
 psycopg2==2.9.3

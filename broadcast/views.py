@@ -51,8 +51,8 @@ def broadcast(request):
         print("*."*10, "sending to bots is starting")
         # source: https://stackoverflow.com/a/21945663/10891757
         thread = threading.Thread(target=send_to_bots,
-                             args=(message,),
-                             kwargs={'bot_username': bot_username})
+                                  args=(message,),
+                                  kwargs={'bot_username': bot_username})
         thread.setDaemon(True)
         thread.start()
         print("*."*10, "sending to bots is done")
