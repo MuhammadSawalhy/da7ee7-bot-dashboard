@@ -19,3 +19,4 @@ tomli==2.0.1
 types-pytz==2021.3.6
 types-PyYAML==6.0.5
 typing_extensions==4.1.1
+whitenoise==6.0.0
