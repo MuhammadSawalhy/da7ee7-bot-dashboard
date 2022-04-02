@@ -2,4 +2,4 @@ env/
 __pycache__/
 
 .env
-telethon.session
+telethon.session*

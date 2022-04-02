@@ -14,8 +14,12 @@ def send_to_bots(message, bot_username):
     bots = Bot.objects.all()
     if bot_username:
         bots = bots.filter(username=bot_username)
+    print("-_"*20)
+    print(message)
+    print("-_"*20)
     for bot in bots:
-        send_to_bot(message, bot.username)
+        print("sending to", bot.username)
+        # send_to_bot(message, bot.username)
 
 
 @login_required
@@ -31,7 +35,10 @@ def broadcast(request):
             return HttpResponse(_("You should specify a message"), status=400)
 
         send_to_bots(message, bot_username=bot_username)
-        messages.success(request, _('message is being broadcasted'))
+        messages.success(request, _('message is being broadcasted, it may take some time'))
         return redirect('broadcast')
+
+    if request.method == "GET":
+        return render(request, "broadcast/index.html", context={ "bots": Bot.objects.all() })
 
     return HttpResponse(_("Method not allowed"), status=405)

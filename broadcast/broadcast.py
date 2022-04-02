@@ -3,12 +3,12 @@
 import os
 import logging
 
-from telethon.sync import TelegramClient, events
+from telethon import TelegramClient, events
 from collections import deque
 from utils import debounce_async
 
-telegram_client = TelegramClient('telethon', os.environ.get(
-    "TELEGRAM_API_ID"), os.environ.get("TELEGRAM_API_HASH"))  # type: ignore
+TELEGRAM_API_ID = int(os.environ.get("TELEGRAM_API_ID") or 0)
+TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
 
 
 def get_message_process(message):
@@ -22,7 +22,7 @@ def get_message_process(message):
     ])
 
 
-def send_to_bot(message, bot_username):
+async def send_to_bot(message, bot_username):
     # we need this global `error_occured` because we are running
     # different threads and async  code if an error occured,  we
     # should stop the next process step
@@ -70,6 +70,7 @@ def send_to_bot(message, bot_username):
         message = get_message()
         if type(message) is str:
             logging.info("sending: " + message)
+            # type: ignore
             await telegram_client.send_message(bot_username, message)
         elif type(message) is dict:
             if message["type"] == "file":
@@ -81,7 +82,7 @@ def send_to_bot(message, bot_username):
                 button_name = message["name"]
                 await click_inline_button(button_name, event)
 
-    with telegram_client:
+    async with TelegramClient('telethon', TELEGRAM_API_ID, TELEGRAM_API_HASH) as telegram_client:
         @telegram_client.on(events.NewMessage(from_users=bot_username))
         async def on_message_recieved(event):
             recieved_message = event.message.message.split("\n")[
@@ -94,5 +95,5 @@ def send_to_bot(message, bot_username):
             else:
                 await send_message(event)
 
-        telegram_client.loop.run_until_complete(send_message())
-        telegram_client.run_until_disconnected()
+        await send_message()
+        await telegram_client.run_until_disconnected()

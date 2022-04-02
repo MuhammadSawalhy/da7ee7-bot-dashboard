@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %} Da7ee7 bot - broadcast {% endblock title %}
+
+{% block content %}
+
+<form method="POST">
+    {% csrf_token%}
+    <textarea
+      class="form-control col-lg-6"
+      placeholder="Message text goes here..."
+      name='message'
+    ></textarea>
+
+    <!-- TODO: list all bots as checkboxes -->
+
+    <button type="submit" class="btn btn-primary col-lg-2 mt-4">Submit</button>
+</form>
+
+{% endblock content %}
+

@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+{% block title %} Da7ee7 bot - login {% endblock title %}
+
+{% block content %}
+
+<h1>Login</h1>
+
+<form action="" method="POST" class="col-6">
+    <div class="d-grid gap-2">
+      {% csrf_token %} {{form|crispy}}
+    </div>
+    <button class="btn btn-primary mt-4" type="submit">Login</button>
+</form>
+
+{% endblock content %}

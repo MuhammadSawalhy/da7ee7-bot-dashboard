@@ -6,11 +6,10 @@ def debounce_async(secs):
 
         @debounce(secs)
         def intermediate_function(*args, **kwargs):
-            # TODO: put in a queque, prevent execution an wait the
-            # previous func to finish. This may be an option
+            # TODO: put in a queque, prevent execution
+            # and wait until the previous func finish. This may be an option
             asyncio.run(func(*args, **kwargs))
 
-        # TODO: make the wrapper async as well
         async def wrapper(*args, **kwargs):
             intermediate_function(*args, **kwargs)
 
