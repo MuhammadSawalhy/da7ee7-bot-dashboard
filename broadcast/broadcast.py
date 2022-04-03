@@ -6,7 +6,9 @@ import logging
 from telethon import TelegramClient, events
 from collections import deque
 from utils import debounce_async
+from django.conf import settings as django_settings
 
+TELETHON_SESSION = os.environ.get("TELETHON_SESSION") or "default"
 TELEGRAM_API_ID = int(os.environ.get("TELEGRAM_API_ID") or 0)
 TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
 
@@ -81,7 +83,7 @@ async def send_to_bot(message, bot_username):
                 button_name = message["name"]
                 await click_inline_button(button_name, event)
 
-    async with TelegramClient('telethon', TELEGRAM_API_ID, TELEGRAM_API_HASH) as telegram_client:
+    async with TelegramClient(f'telethon.{TELETHON_SESSION}', TELEGRAM_API_ID, TELEGRAM_API_HASH) as telegram_client:
         @telegram_client.on(events.NewMessage(from_users=bot_username))
         async def on_message_recieved(event):
             recieved_message = event.message.message.split("\n")[
