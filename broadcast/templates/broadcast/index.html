@@ -3,13 +3,22 @@
 
 {% block content %}
 
-<form method="POST" action="{% url 'broadcast_POST' %}">
+<form class="d-grid gap-2" method="POST" enctype="multipart/form-data" action="{% url 'broadcast_POST' %}">
     {% csrf_token%}
     <textarea
       class="form-control col-lg-6"
       placeholder="Message text goes here..."
       name='message'
+      style="min-height: 200px;"
     ></textarea>
+
+    <input
+      id="image"
+      type="url"
+      name="image"
+      class="form-control"
+      placeholder="Image URL [optional]"
+    />
 
     <!-- TODO: list all bots as checkboxes -->
 
