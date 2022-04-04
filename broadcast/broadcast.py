@@ -54,7 +54,7 @@ async def send_to_bots(message, *, image, bots_usernames):
                             telegram_client=telegram_client)
             )
             tasks.append(task)
-        await asyncio.wait(tasks)
+        await asyncio.wait(tasks, timeout=1.5*60)
 
 
 async def send_to_bot(message, *, image, bot_username, telegram_client):
