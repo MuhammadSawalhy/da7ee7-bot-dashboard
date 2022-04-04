@@ -1,7 +1,7 @@
 from rich import inspect
 import os
 import re
-import threading
+import multiprocessing
 import asyncio
 from bots.models import Bot
 
@@ -15,12 +15,14 @@ from django.conf import settings
 from broadcast.broadcast import send_to_bots
 
 
-is_broadcasting = False
+broadcasting_process = None
+
+
+def is_broadcasting():
+    return broadcasting_process and broadcasting_process.is_alive()
 
 
 def send_to_request_bots(message, image, bots_usernames=[]):
-    global is_broadcasting
-    is_broadcasting = True
     print("*."*10, "sending to bots is starting")
     print("-_"*20)
     print(message)
@@ -35,7 +37,6 @@ def send_to_request_bots(message, image, bots_usernames=[]):
             message, image=image, bots_usernames=bots_usernames))
         loop.close()
     finally:
-        is_broadcasting = False
         print("*."*10, "sending to bots is done")
 
 
@@ -47,7 +48,7 @@ def broadcast_page(request):
                       "broadcast/index.html",
                       context={
                           "bots": Bot.objects.all(),
-                          "is_broadcasting": is_broadcasting
+                          "is_broadcasting": is_broadcasting()
                       })
 
     return HttpResponse(_("Method not allowed"), status=405)
@@ -56,6 +57,7 @@ def broadcast_page(request):
 @csrf_exempt
 def broadcast(request):
     if request.method == "POST":
+        global broadcasting_process
         password = request.POST.get("password")
         bots_usernames = request.POST.get("bots")
         message = request.POST.get("message")
@@ -76,24 +78,22 @@ def broadcast(request):
                     'image source should be png image from https://suar.me/'))
                 return redirect('broadcast')
 
-        inspect(image)
         if (not request.user or not request.user.is_staff) \
                 and password != os.environ.get("BROADCASTING_PASSWORD"):
             return HttpResponse(_("You are not authorized to do this action"), status=401)
         if not message and not isinstance(message, str):
             return HttpResponse(_("You should specify a message"), status=400)
 
-        if not is_broadcasting:
+        if not is_broadcasting():
             # source: https://stackoverflow.com/a/21945663/10891757
-            thread = threading.Thread(
+            broadcasting_process = multiprocessing.Process(
                 target=send_to_request_bots,
                 args=(message,),
                 kwargs={
                     'image': image,
                     'bots_usernames': bots_usernames,
                 })
-            thread.daemon = True
-            thread.start()
+            broadcasting_process.start()
             messages.success(request, _(
                 'message is being broadcasted, it may take some time'))
         else:
@@ -102,3 +102,15 @@ def broadcast(request):
         return redirect('broadcast')
 
     return HttpResponse(_("Method not allowed"), status=405)
+
+
+@csrf_exempt
+def cancel(request):
+    if is_broadcasting():
+        broadcasting_process.terminate() # type: ignore
+        messages.success(request, _(
+            'the previous running broadcasting was successfully canceled'))
+    else:
+        messages.error(request, _(
+            'no running broadcasting exists'))
+    return redirect('broadcast')

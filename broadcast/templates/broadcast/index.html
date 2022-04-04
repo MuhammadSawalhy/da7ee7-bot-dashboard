@@ -3,7 +3,14 @@
 
 {% block content %}
 
-<form class="d-grid gap-2" method="POST" enctype="multipart/form-data" action="{% url 'broadcast_POST' %}">
+{% if is_broadcasting %}
+<div role="alert" class="alert alert-dismissible fade show alert-info">
+  <p>Broadcasting is in progress right now...</p>
+  <a class="btn btn-danger" href="{% url 'broadcast_cancel' %}">Cancel</a>
+</div>
+{% endif %}
+
+<form class="d-grid gap-2" method="POST" enctype="multipart/form-data" action="{% url 'broadcast_message' %}">
     {% csrf_token%}
     <textarea
       class="form-control col-lg-6"
@@ -36,4 +43,3 @@
 </form>
 
 {% endblock content %}
-
