@@ -101,10 +101,12 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
 
     @debounce_async(0.5)
     async def send_message(event: events.NewMessage.Event | None = None):
+        nonlocal done
         message = get_message()
         if type(message) is str:
             await telegram_client.send_message(bot_username, message)
             logging.info(f"[{bot_username}] sent: " + message)
+            done = True
         elif type(message) is dict:
             if message["type"] == "file":
                 await telegram_client.send_file(bot_username, file=message['file'], caption=message['caption'])

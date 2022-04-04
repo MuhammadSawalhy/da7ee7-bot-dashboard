@@ -11,7 +11,6 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from django.core.files.base import File
 from broadcast.broadcast import send_to_bots
 
 
@@ -44,6 +43,7 @@ def send_to_request_bots(message, image, bot_username):
 @login_required
 def broadcast_page(request):
     if request.method == "GET":
+        # TODO: message indicating that a broacasting is running, and a way to cancel it
         return render(request, "broadcast/index.html", context={"bots": Bot.objects.all()})
 
     return HttpResponse(_("Method not allowed"), status=405)
@@ -52,7 +52,6 @@ def broadcast_page(request):
 @csrf_exempt
 def broadcast(request):
     if request.method == "POST":
-        # TODO: message indicating that a broacasting is running, and a way to cancel it
         password = request.POST.get("password")
         bot_username = request.POST.get("bot")
         message = request.POST.get("message")
