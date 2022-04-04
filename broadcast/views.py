@@ -62,7 +62,7 @@ def broadcast(request):
         password = request.POST.get("password")
         bots_usernames = request.POST.get("bots")
         bots_usernames = [bot.username for bot in Bot.objects.all()]
-        message = request.POST.get("message")
+        message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
         if image:
             image_file_name = "telegram-image-to-send.png"
@@ -84,7 +84,11 @@ def broadcast(request):
                 and password != os.environ.get("BROADCASTING_PASSWORD"):
             return HttpResponse(_("You are not authorized to do this action"), status=401)
         if not message and not image:
-            return HttpResponse(_("You should specify a message"), status=400)
+            messages.error(request, _("You should specify a message"))
+            return redirect('broadcast')
+        if image and len(message) > 1024:
+            messages.error(request, _("Image caption should not excceed 1024 chars"))
+            return redirect('broadcast')
 
         if not is_broadcasting():
             # source: https://stackoverflow.com/a/21945663/10891757
