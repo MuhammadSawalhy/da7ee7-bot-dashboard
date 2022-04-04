@@ -102,6 +102,9 @@ DATABASES = {
     }
 }
 
+if not IS_LOCALHOST:
+    DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators
