@@ -121,8 +121,8 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         recieved_message = event.message.message.split("\n")[
             0]  # first line only
         logging.info(f"[{bot_username}] recieved: " + recieved_message)
-        # or recieved_message[0] == "❌":
-        if error_occured or len(process) == 0:
+        
+        if error_occured or len(process) == 0 or recieved_message[0] == "❌":
             done = True
         else:
             await send_message(event)
