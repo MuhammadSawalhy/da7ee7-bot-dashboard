@@ -37,6 +37,8 @@ def send_to_request_bots(message, image, bots_usernames):
         loop.close()
     finally:
         print("*."*10, "sending to bots is done")
+        import sys
+        sys.exit()
 
 
 @login_required
@@ -81,7 +83,7 @@ def broadcast(request):
         if (not request.user or not request.user.is_staff) \
                 and password != os.environ.get("BROADCASTING_PASSWORD"):
             return HttpResponse(_("You are not authorized to do this action"), status=401)
-        if not message and not isinstance(message, str):
+        if not message and not image:
             return HttpResponse(_("You should specify a message"), status=400)
 
         if not is_broadcasting():
