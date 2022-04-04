@@ -108,7 +108,7 @@ def broadcast(request):
 @csrf_exempt
 def cancel(request):
     if is_broadcasting():
-        broadcasting_process.terminate() # type: ignore
+        broadcasting_process.kill() # type: ignore
         messages.success(request, _(
             'the previous running broadcasting was successfully canceled'))
     else:
