@@ -21,7 +21,13 @@ def get_message_process(message, *, image):
             'caption': message}
 
     if django_settings.IS_LOCALHOST:
-        process = deque([message_process])
+        process = deque([
+            "/langen",
+            "📤 Mailing",
+            message_process,
+            '✅ Send',
+            "/langar",
+        ])
     else:
         process = deque([
             "/langen",

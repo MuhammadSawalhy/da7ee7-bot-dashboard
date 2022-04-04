@@ -109,6 +109,7 @@ def broadcast(request):
 def cancel(request):
     if is_broadcasting():
         broadcasting_process.kill() # type: ignore
+        broadcasting_process.join() # type: ignore
         messages.success(request, _(
             'the previous running broadcasting was successfully canceled'))
     else:
