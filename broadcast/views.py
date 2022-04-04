@@ -12,15 +12,13 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.core.files.base import File
-
-
-from broadcast.broadcast import send_to_bot
+from broadcast.broadcast import send_to_bots
 
 
 is_broadcasting = False
 
 
-def send_to_bots(message, image, bot_username):
+def send_to_request_bots(message, image, bot_username):
     global is_broadcasting
     is_broadcasting = True
     print("*."*10, "sending to bots is starting")
@@ -35,9 +33,8 @@ def send_to_bots(message, image, bot_username):
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        for bot in bots:
-            loop.run_until_complete(send_to_bot(
-                message, image=image, bot_username=bot.username))
+        loop.run_until_complete(send_to_bots(
+            message, image=image, bots_usernames=[bot.username for bot in bots]))
         loop.close()
     finally:
         is_broadcasting = False
@@ -55,6 +52,7 @@ def broadcast_page(request):
 @csrf_exempt
 def broadcast(request):
     if request.method == "POST":
+        # TODO: message indicating that a broacasting is running, and a way to cancel it
         password = request.POST.get("password")
         bot_username = request.POST.get("bot")
         message = request.POST.get("message")
@@ -79,7 +77,7 @@ def broadcast(request):
         if not is_broadcasting:
             # source: https://stackoverflow.com/a/21945663/10891757
             thread = threading.Thread(
-                target=send_to_bots,
+                target=send_to_request_bots,
                 args=(message,),
                 kwargs={
                     'image': image,

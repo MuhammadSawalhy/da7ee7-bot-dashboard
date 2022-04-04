@@ -1,3 +1,4 @@
+import asyncio
 import os
 import logging
 
@@ -33,11 +34,29 @@ def get_message_process(message, *, image):
     return process
 
 
-async def send_to_bot(message, *, image, bot_username):
+def get_telegram_client():
+    return TelegramClient(f'telethon.{TELETHON_SESSION}', TELEGRAM_API_ID, TELEGRAM_API_HASH)
+
+
+async def send_to_bots(message, *, image, bots_usernames):
+    async with get_telegram_client() as telegram_client:
+        tasks = []
+        for bot_username in bots_usernames:
+            task = asyncio.create_task(
+                send_to_bot(message, image=image,
+                            bot_username=bot_username,
+                            telegram_client=telegram_client)
+            )
+            tasks.append(task)
+        await asyncio.wait(tasks)
+
+
+async def send_to_bot(message, *, image, bot_username, telegram_client):
     # we need this global `error_occured` because we are running
     # different threads and async  code if an error occured,  we
     # should stop the next process step
     error_occured = False
+    done = False
     process = get_message_process(message, image=image)
 
     def get_message():
@@ -74,7 +93,8 @@ async def send_to_bot(message, *, image, bot_username):
         logging.warning(
             bot_username + "can't find the button to click, " + button_name)
         # all the buttons chained
-        logging.warning(f"[{bot_username}] here are the buttons: " + all_buttons)
+        logging.warning(
+            f"[{bot_username}] here are the buttons: " + all_buttons)
         logging.warning(f"[{bot_username}] waiting for the next message")
         process.appendleft({'type': 'click-button', 'name': button_name})
         error_occured = True
@@ -83,29 +103,27 @@ async def send_to_bot(message, *, image, bot_username):
     async def send_message(event: events.NewMessage.Event | None = None):
         message = get_message()
         if type(message) is str:
-            logging.info(f"[{bot_username}] sending: " + message)
-            # type: ignore
             await telegram_client.send_message(bot_username, message)
+            logging.info(f"[{bot_username}] sent: " + message)
         elif type(message) is dict:
             if message["type"] == "file":
-                logging.info(f"[{bot_username}] sending file")
                 await telegram_client.send_file(bot_username, file=message['file'], caption=message['caption'])
+                logging.info(f"[{bot_username}] file sent: " + message['file'])
             elif message["type"] == "click-button":
                 button_name = message["name"]
                 await click_inline_button(button_name, event)
 
-    async with TelegramClient(f'telethon.{TELETHON_SESSION}', TELEGRAM_API_ID, TELEGRAM_API_HASH) as telegram_client:
-        @telegram_client.on(events.NewMessage(from_users=bot_username))
-        async def on_message_recieved(event):
-            recieved_message = event.message.message.split("\n")[
-                0]  # first line only
-            logging.info(f"[{bot_username}] recieved: " + recieved_message)
-            if error_occured or len(process) == 0 or recieved_message[0] == "❌":
-                disconn_coro = telegram_client.disconnect()
-                if disconn_coro:
-                    await disconn_coro
-            else:
-                await send_message(event)
+    @telegram_client.on(events.NewMessage(from_users=bot_username))
+    async def _(event):
+        nonlocal done
+        recieved_message = event.message.message.split("\n")[
+            0]  # first line only
+        logging.info(f"[{bot_username}] recieved: " + recieved_message)
+        if error_occured or len(process) == 0 or recieved_message[0] == "❌":
+            done = True
+        else:
+            await send_message(event)
 
-        await send_message()
-        await telegram_client.run_until_disconnected()
+    await send_message()
+    while not done:
+        await asyncio.sleep(1)
