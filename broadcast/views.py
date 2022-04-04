@@ -93,6 +93,7 @@ def broadcast(request):
                     'image': image,
                     'bots_usernames': bots_usernames,
                 })
+            broadcasting_process.daemon = True
             broadcasting_process.start()
             messages.success(request, _(
                 'message is being broadcasted, it may take some time'))
