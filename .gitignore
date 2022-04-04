@@ -3,5 +3,6 @@ __pycache__/
 
 .env
 # telethon.session*
+*.session-journal
 staticfiles/
 broadcast/image-to-send.png

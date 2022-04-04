@@ -1,5 +1,5 @@
-from rich import inspect
 import os
+import re
 import threading
 import asyncio
 from bots.models import Bot
@@ -57,15 +57,20 @@ def broadcast(request):
         message = request.POST.get("message")
         image = request.FILES.get("image") or None
         if image:
-            image_path = settings.BASE_DIR / "broadcast" / "image-to-send.png"
+            image_file_name = "telegram-image-to-send.png"
+            image_path = settings.BASE_DIR / "staticfiles" / image_file_name
             with open(image_path, 'wb+') as f:
                 for chunk in image.chunks():
                     f.write(chunk)
-            image = image_path
+            image = f"{os.environ.get('SITE_URL')}/static/{image_file_name}"
         else:
             # an external link for an image, telethon will tell
             # telegram to fetch and send it itself
-            image = image or request.POST.get("image") or None
+            image = request.POST.get("image") or None
+            if image and not re.search(r"https://i\.suar\.me/.+", image):
+                messages.error(request, _(
+                    'image source should be png image from https://suar.me/'))
+                return redirect('broadcast')
 
         if (not request.user or not request.user.is_staff) \
                 and password != os.environ.get("BROADCASTING_PASSWORD"):
