@@ -19,46 +19,24 @@ broadcasting_process = None
 
 
 def is_broadcasting():
-    if broadcasting_process and broadcasting_process.running:
-        return True
-    if broadcasting_process:
-        broadcasting_process.kill()
-    return False
+    return broadcasting_process and broadcasting_process.is_alive()
 
 
-class SendToBotsProcess(multiprocessing.Process):
-    def __init__(self, message, image, bots_usernames, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.running = True
-        self.broadcasting = {
-            'message': message,
-            'image': image,
-            'bots_usernames': bots_usernames
-        }
-
-    def run(self):
-        self.running = True
-        self.send_to_request_bots()
-        self.running = False
-
-    def send_to_request_bots(self):
-        message = self.broadcasting["message"]
-        image = self.broadcasting["image"]
-        bots_usernames = self.broadcasting["bots_usernames"]
-        print("*."*10, "sending to bots is starting")
-        print("-_"*20)
-        print(message)
-        print("-_"*20)
-        for bot_username in bots_usernames:
-            print("sending to", bot_username)
-        try:
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            loop.run_until_complete(send_to_bots(
-                message, image=image, bots_usernames=bots_usernames))
-            loop.close()
-        finally:
-            print("*."*10, "sending to bots is done")
+def send_to_request_bots(message, image, bots_usernames):
+    print("*."*10, "sending to bots is starting")
+    print("-_"*20)
+    print(message)
+    print("-_"*20)
+    for bot_username in bots_usernames:
+        print("sending to", bot_username)
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(send_to_bots(
+            message, image=image, bots_usernames=bots_usernames))
+        loop.close()
+    finally:
+        print("*."*10, "sending to bots is done")
 
 
 @login_required
@@ -108,8 +86,13 @@ def broadcast(request):
 
         if not is_broadcasting():
             # source: https://stackoverflow.com/a/21945663/10891757
-            broadcasting_process = SendToBotsProcess(
-                message, image, bots_usernames)
+            broadcasting_process = multiprocessing.Process(
+                target=send_to_request_bots,
+                args=(message,),
+                kwargs={
+                    'image': image,
+                    'bots_usernames': bots_usernames,
+                })
             broadcasting_process.daemon = True
             broadcasting_process.start()
             messages.success(request, _(
@@ -125,7 +108,7 @@ def broadcast(request):
 @csrf_exempt
 def cancel(request):
     if is_broadcasting():
-        broadcasting_process.kill()  # type: ignore
+        broadcasting_process.kill() # type: ignore
         messages.success(request, _(
             'the previous running broadcasting was successfully canceled'))
     else:
