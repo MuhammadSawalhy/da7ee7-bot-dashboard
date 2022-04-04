@@ -1,3 +1,4 @@
+from rich import inspect
 import os
 import re
 import threading
@@ -17,23 +18,21 @@ from broadcast.broadcast import send_to_bots
 is_broadcasting = False
 
 
-def send_to_request_bots(message, image, bot_username):
+def send_to_request_bots(message, image, bots_usernames=[]):
     global is_broadcasting
     is_broadcasting = True
     print("*."*10, "sending to bots is starting")
-    bots = Bot.objects.all()
-    if bot_username:
-        bots = bots.filter(username=bot_username)
     print("-_"*20)
     print(message)
     print("-_"*20)
-    for bot in bots:
-        print("sending to", bot.username)
+    bots_usernames = [bot.username for bot in Bot.objects.all()]
+    for bot_username in bots_usernames:
+        print("sending to", bot_username)
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(send_to_bots(
-            message, image=image, bots_usernames=[bot.username for bot in bots]))
+            message, image=image, bots_usernames=bots_usernames))
         loop.close()
     finally:
         is_broadcasting = False
@@ -44,7 +43,12 @@ def send_to_request_bots(message, image, bot_username):
 def broadcast_page(request):
     if request.method == "GET":
         # TODO: message indicating that a broacasting is running, and a way to cancel it
-        return render(request, "broadcast/index.html", context={"bots": Bot.objects.all()})
+        return render(request,
+                      "broadcast/index.html",
+                      context={
+                          "bots": Bot.objects.all(),
+                          "is_broadcasting": is_broadcasting
+                      })
 
     return HttpResponse(_("Method not allowed"), status=405)
 
@@ -53,7 +57,7 @@ def broadcast_page(request):
 def broadcast(request):
     if request.method == "POST":
         password = request.POST.get("password")
-        bot_username = request.POST.get("bot")
+        bots_usernames = request.POST.get("bots")
         message = request.POST.get("message")
         image = request.FILES.get("image") or None
         if image:
@@ -66,12 +70,13 @@ def broadcast(request):
         else:
             # an external link for an image, telethon will tell
             # telegram to fetch and send it itself
-            image = request.POST.get("image") or None
+            image = request.POST.get("image_url")
             if image and not re.search(r"https://i\.suar\.me/.+", image):
                 messages.error(request, _(
                     'image source should be png image from https://suar.me/'))
                 return redirect('broadcast')
 
+        inspect(image)
         if (not request.user or not request.user.is_staff) \
                 and password != os.environ.get("BROADCASTING_PASSWORD"):
             return HttpResponse(_("You are not authorized to do this action"), status=401)
@@ -85,7 +90,7 @@ def broadcast(request):
                 args=(message,),
                 kwargs={
                     'image': image,
-                    'bot_username': bot_username,
+                    'bots_usernames': bots_usernames,
                 })
             thread.daemon = True
             thread.start()
