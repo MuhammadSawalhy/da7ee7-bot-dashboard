@@ -22,12 +22,11 @@ def is_broadcasting():
     return broadcasting_process and broadcasting_process.is_alive()
 
 
-def send_to_request_bots(message, image, bots_usernames=[]):
+def send_to_request_bots(message, image, bots_usernames):
     print("*."*10, "sending to bots is starting")
     print("-_"*20)
     print(message)
     print("-_"*20)
-    bots_usernames = [bot.username for bot in Bot.objects.all()]
     for bot_username in bots_usernames:
         print("sending to", bot_username)
     try:
@@ -60,6 +59,7 @@ def broadcast(request):
         global broadcasting_process
         password = request.POST.get("password")
         bots_usernames = request.POST.get("bots")
+        bots_usernames = [bot.username for bot in Bot.objects.all()]
         message = request.POST.get("message")
         image = request.FILES.get("image") or None
         if image:
