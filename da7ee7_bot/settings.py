@@ -12,6 +12,8 @@ https://docs.djangoproject.com/en/4.0/ref/settings/
 
 import os
 import logging
+import dj_database_url
+
 from pathlib import Path
 from dotenv import load_dotenv
 
@@ -91,20 +93,8 @@ WSGI_APPLICATION = 'da7ee7_bot.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql_psycopg2",
-        "PASSWORD": os.environ.get("POSTGRES_PASSWORD"),
-        "NAME": os.environ.get("POSTGRES_DATABASE"),
-        "USER": os.environ.get("POSTGRES_USER"),
-        "HOST": os.environ.get("POSTGRES_HOST"),
-        "PORT": os.environ.get("POSTGRES_PORT"),
-    }
-}
-
-if not IS_LOCALHOST:
-    DATABASES["default"]["OPTIONS"] = {"sslmode": "require"}
-
+DATABASES = {}
+DATABASES['default'] = dj_database_url.parse(os.environ.get("DATABASE_URL"), conn_max_age=600)
 
 # Password validation
 # https://docs.djangoproject.com/en/4.0/ref/settings/#auth-password-validators

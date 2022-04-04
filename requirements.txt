@@ -1,5 +1,6 @@
 asgiref==3.5.0
 commonmark==0.9.1
+dj-database-url==0.5.0
 Django==4.0.3
 django-compat==1.0.15
 django-crispy-forms==1.14.0
