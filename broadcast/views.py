@@ -60,6 +60,20 @@ def write_image(image):
     return f"{os.environ.get('SITE_URL')}/static/{image_file_name}"
 
 
+def check_message(request, message, *, image):
+    if not message and not image:
+        messages.error(request, _("You should specify a message"))
+        return redirect('broadcast')
+    if image and len(message) > 1024:
+        messages.error(request, _(
+            "Image caption should not excceed 1024 chars"))
+        return redirect('broadcast')
+    if not image and len(message) > 4096:
+        messages.error(request, _(
+            "Message is too long to send, please send a message less than 4096 characters"))
+        return redirect('broadcast')
+
+
 def send_in_background(message, *, image, bots_usernames):
     # source: https://stackoverflow.com/a/21945663/10891757
     broadcasting_thread = threading.Thread(
@@ -109,13 +123,8 @@ def broadcast(request):
         if (not request.user or not request.user.is_staff) \
                 and password != os.environ.get("BROADCASTING_PASSWORD"):
             return HttpResponse(_("You are not authorized to do this action"), status=401)
-        if not message and not image:
-            messages.error(request, _("You should specify a message"))
-            return redirect('broadcast')
-        if image and len(message) > 1024:
-            messages.error(request, _(
-                "Image caption should not excceed 1024 chars"))
-            return redirect('broadcast')
+        if response := check_message(request, message=message, image=image):
+            return response
 
         if not is_broadcasting():
             send_in_background(message, image=image,
@@ -123,6 +132,7 @@ def broadcast(request):
         else:
             messages.error(request, _(
                 'Another broadcasting is in progress, please wait!'))
+
         return redirect('broadcast')
 
     return HttpResponse(_("Method not allowed"), status=405)
