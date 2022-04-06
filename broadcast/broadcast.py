@@ -1,15 +1,20 @@
-import asyncio
 import os
+import asyncio
 import logging
+import threading
 
-from telethon import TelegramClient, events
 from collections import deque
 from utils import debounce_async
+from telethon import TelegramClient, events
 from django.conf import settings as django_settings
+from django.utils.translation import gettext_lazy as _
 
 TELETHON_SESSION = os.environ.get("TELETHON_SESSION") or "default"
 TELEGRAM_API_ID = int(os.environ.get("TELEGRAM_API_ID") or 0)
 TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
+
+broadcasting_thread = None
+_is_broadcasting = False
 
 
 def get_message_process(message, *, image):
@@ -34,6 +39,15 @@ def get_message_process(message, *, image):
     return process
 
 
+def is_broadcasting():
+    return _is_broadcasting
+
+
+def cancel_broadcasting():
+    broadcasting_thread.kill()  # type: ignore
+    broadcasting_thread.join()  # type: ignore
+
+
 def get_telegram_client():
     return TelegramClient(f'telethon.{TELETHON_SESSION}', TELEGRAM_API_ID, TELEGRAM_API_HASH)
 
@@ -48,7 +62,44 @@ async def send_to_bots(message, *, image, bots_usernames):
                             telegram_client=telegram_client)
             )
             tasks.append(task)
-        await asyncio.wait(tasks, timeout=1.5*60)
+        await asyncio.wait(tasks, timeout=30)  # half a minute as a timeout
+
+
+def send_to_bots_sync(message, *, image, bots_usernames):
+    global _is_broadcasting
+    _is_broadcasting = True
+    print("*."*10, "sending to bots is starting")
+    print("-_"*20)
+    print(message)
+    print("-_"*20)
+    for bot_username in bots_usernames:
+        print("sending to", bot_username)
+    try:
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(send_to_bots(
+            message, image=image, bots_usernames=bots_usernames))
+        loop.close()
+    finally:
+        print("*."*10, "sending to bots is done")
+        _is_broadcasting = False
+
+
+def send_to_bots_in_background(message, *, image, bots_usernames):
+    # source: https://stackoverflow.com/a/21945663/10891757
+    global broadcasting_thread
+    # a layer of safty here
+    if is_broadcasting():
+        raise Exception(_("Can't broadcast new message while another broadcasting is running"))
+    broadcasting_thread = threading.Thread(
+        target=send_to_bots_sync,
+        args=(message,),
+        kwargs={
+            'image': image,
+            'bots_usernames': bots_usernames,
+        })
+    broadcasting_thread.daemon = True
+    broadcasting_thread.start()
 
 
 async def send_to_bot(message, *, image, bot_username, telegram_client):
@@ -109,7 +160,8 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
             done = True
         elif type(message) is dict:
             if message["type"] == "file":
-                logging.info(f"[{bot_username}] file sending: " + message['file'])
+                logging.info(
+                    f"[{bot_username}] file sending: " + message['file'])
                 await telegram_client.send_file(bot_username, file=message['file'], caption=message['caption'])
             elif message["type"] == "click-button":
                 button_name = message["name"]

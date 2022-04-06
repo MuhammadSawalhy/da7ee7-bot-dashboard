@@ -1,10 +1,8 @@
 import os
 import re
 import glob
-import asyncio
 from bots.models import Bot
 from datetime import datetime
-import threading
 
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -13,35 +11,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
-from broadcast.broadcast import send_to_bots
-
-
-broadcasting_thread = None
-_is_broadcasting = False
-
-
-def is_broadcasting():
-    return _is_broadcasting
-
-
-def send_to_request_bots(message, image, bots_usernames):
-    global _is_broadcasting
-    _is_broadcasting = True
-    print("*."*10, "sending to bots is starting")
-    print("-_"*20)
-    print(message)
-    print("-_"*20)
-    for bot_username in bots_usernames:
-        print("sending to", bot_username)
-    try:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(send_to_bots(
-            message, image=image, bots_usernames=bots_usernames))
-        loop.close()
-    finally:
-        print("*."*10, "sending to bots is done")
-        _is_broadcasting = False
+from broadcast.broadcast import send_to_bots_in_background, is_broadcasting, cancel_broadcasting
 
 
 def write_image(image):
@@ -74,19 +44,6 @@ def check_message(request, message, *, image):
         return redirect('broadcast')
 
 
-def send_in_background(message, *, image, bots_usernames):
-    # source: https://stackoverflow.com/a/21945663/10891757
-    broadcasting_thread = threading.Thread(
-        target=send_to_request_bots,
-        args=(message,),
-        kwargs={
-            'image': image,
-            'bots_usernames': bots_usernames,
-        })
-    broadcasting_thread.daemon = True
-    broadcasting_thread.start()
-
-
 @login_required
 def broadcast_page(request):
     if request.method == "GET":
@@ -104,7 +61,6 @@ def broadcast_page(request):
 @csrf_exempt
 def broadcast(request):
     if request.method == "POST":
-        global broadcasting_thread
         password = request.POST.get("password")
         bots_usernames = request.POST.getlist("bot")
         message = request.POST.get("message") or ""
@@ -127,8 +83,8 @@ def broadcast(request):
             return response
 
         if not is_broadcasting():
-            send_in_background(message, image=image,
-                               bots_usernames=bots_usernames)
+            send_to_bots_in_background(
+                message, image=image, bots_usernames=bots_usernames)
         else:
             messages.error(request, _(
                 'Another broadcasting is in progress, please wait!'))
@@ -141,8 +97,7 @@ def broadcast(request):
 @csrf_exempt
 def cancel(request):
     if is_broadcasting():
-        broadcasting_thread.kill()  # type: ignore
-        broadcasting_thread.join()  # type: ignore
+        cancel_broadcasting()
         messages.success(request, _(
             'the previous running broadcasting was successfully canceled'))
     else:
