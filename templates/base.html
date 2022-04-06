@@ -53,25 +53,23 @@
         </div>
       </div>
     </nav>
-    <div class="container">
-      <section class="pt-lg-5 pt-3">
-        {% if messages %} {% for message in messages %}
-        <div
-          role="alert"
-          class="alert alert-dismissible fade show
-            {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert-danger{% endif %}
-            {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}alert-warning{% endif %}
-            {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}alert-success{% endif %}
-            {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}alert-info{% endif %}
-          "
-        >
-          {{message}}
-          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-        {% endfor %} {% endif %}
-        {% block content %} {% endblock content %}
-      </section>
-    </div>
+    <section class="container py-lg-5 py-3">
+      {% if messages %} {% for message in messages %}
+      <div
+        role="alert"
+        class="alert alert-dismissible fade show
+          {% if message.level == DEFAULT_MESSAGE_LEVELS.ERROR %}alert-danger{% endif %}
+          {% if message.level == DEFAULT_MESSAGE_LEVELS.WARNING %}alert-warning{% endif %}
+          {% if message.level == DEFAULT_MESSAGE_LEVELS.SUCCESS %}alert-success{% endif %}
+          {% if message.level == DEFAULT_MESSAGE_LEVELS.INFO %}alert-info{% endif %}
+        "
+      >
+        {{message}}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+      {% endfor %} {% endif %}
+      {% block content %} {% endblock content %}
+    </section>
   </body>
 
 </html>

@@ -37,8 +37,6 @@ def send_to_request_bots(message, image, bots_usernames):
         loop.close()
     finally:
         print("*."*10, "sending to bots is done")
-        import sys
-        sys.exit()
 
 
 @login_required
@@ -98,16 +96,17 @@ def broadcast(request):
             return redirect('broadcast')
 
         if not is_broadcasting():
-            # source: https://stackoverflow.com/a/21945663/10891757
-            broadcasting_process = multiprocessing.Process(
-                target=send_to_request_bots,
-                args=(message,),
-                kwargs={
-                    'image': image,
-                    'bots_usernames': bots_usernames,
-                })
-            broadcasting_process.daemon = True
-            broadcasting_process.start()
+            # # source: https://stackoverflow.com/a/21945663/10891757
+            # broadcasting_process = multiprocessing.Process(
+            #     target=send_to_request_bots,
+            #     args=(message,),
+            #     kwargs={
+            #         'image': image,
+            #         'bots_usernames': bots_usernames,
+            #     })
+            # broadcasting_process.daemon = True
+            # broadcasting_process.start()
+            send_to_request_bots(message, image=image, bots_usernames=bots_usernames)
             messages.success(request, _(
                 'message is being broadcasted, it may take some time'))
         else:
