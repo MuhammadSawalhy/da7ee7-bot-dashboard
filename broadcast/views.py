@@ -1,9 +1,9 @@
 import os
 import re
 import glob
-import multiprocessing
 import asyncio
 from bots.models import Bot
+from datetime import datetime
 
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -62,15 +62,11 @@ def broadcast(request):
         message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
         if image:
-            prev_img_max_number = 0
             for prev_img_path in glob.glob('staticfiles/telegram-image-to-send-*.png'):
-                print("image found:", prev_img_path)
-                match = re.match(
-                    r'staticfiles/telegram-image-to-send-(\d+)\.png', prev_img_path)
-                img_number = int(match.groups()[0]) if match else -1
-                prev_img_max_number = img_number if img_number > prev_img_max_number else prev_img_max_number
+                print("prev image:", prev_img_path)
                 os.remove(prev_img_path)
-            image_file_name = f"telegram-image-to-send-{prev_img_max_number + 1}.png"
+            now = str(datetime.now())
+            image_file_name = f"telegram-image-to-send-{now}.png"
             print("next image:", image_file_name)
             image_path = settings.BASE_DIR / "staticfiles" / image_file_name
             with open(image_path, 'wb+') as f:
