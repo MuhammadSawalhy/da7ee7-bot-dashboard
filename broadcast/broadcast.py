@@ -104,13 +104,13 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         nonlocal done
         message = get_message()
         if type(message) is str:
+            logging.info(f"[{bot_username}] sending: " + message)
             await telegram_client.send_message(bot_username, message)
-            logging.info(f"[{bot_username}] sent: " + message)
             done = True
         elif type(message) is dict:
             if message["type"] == "file":
+                logging.info(f"[{bot_username}] file sending: " + message['file'])
                 await telegram_client.send_file(bot_username, file=message['file'], caption=message['caption'])
-                logging.info(f"[{bot_username}] file sent: " + message['file'])
             elif message["type"] == "click-button":
                 button_name = message["name"]
                 await click_inline_button(button_name, event)
