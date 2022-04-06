@@ -1,6 +1,6 @@
-from rich import inspect
 import os
 import re
+import glob
 import multiprocessing
 import asyncio
 from bots.models import Bot
@@ -65,7 +65,14 @@ def broadcast(request):
         message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
         if image:
-            image_file_name = "telegram-image-to-send.png"
+            prev_img_max_number = 0
+            for prev_img_path in glob.glob('staticfiles/telegram-image-to-send-*.png'):
+                match = re.match(
+                    r'staticfiles/telegram-image-to-send-(\d+)\.png', prev_img_path)
+                img_number = int(match.groups()[0]) if match else -1
+                prev_img_max_number = img_number if img_number > prev_img_max_number else prev_img_max_number
+                os.remove(prev_img_path)
+            image_file_name = f"telegram-image-to-send-{prev_img_max_number + 1}.png"
             image_path = settings.BASE_DIR / "staticfiles" / image_file_name
             with open(image_path, 'wb+') as f:
                 for chunk in image.chunks():
@@ -87,7 +94,8 @@ def broadcast(request):
             messages.error(request, _("You should specify a message"))
             return redirect('broadcast')
         if image and len(message) > 1024:
-            messages.error(request, _("Image caption should not excceed 1024 chars"))
+            messages.error(request, _(
+                "Image caption should not excceed 1024 chars"))
             return redirect('broadcast')
 
         if not is_broadcasting():
@@ -114,8 +122,8 @@ def broadcast(request):
 @csrf_exempt
 def cancel(request):
     if is_broadcasting():
-        broadcasting_process.kill() # type: ignore
-        broadcasting_process.join() # type: ignore
+        broadcasting_process.kill()  # type: ignore
+        broadcasting_process.join()  # type: ignore
         messages.success(request, _(
             'the previous running broadcasting was successfully canceled'))
     else:
