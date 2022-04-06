@@ -104,12 +104,14 @@ def broadcast(request):
             #     })
             # broadcasting_process.daemon = True
             # broadcasting_process.start()
+            # messages.success(request, _(
+            #     'Message is being broadcasted, it may take some time'))
             send_to_request_bots(message, image=image, bots_usernames=bots_usernames)
             messages.success(request, _(
-                'message is being broadcasted, it may take some time'))
+                'Alhamdulilah! message is sent successfully'))
         else:
             messages.error(request, _(
-                'another broadcasting is in progress, please wait!'))
+                'Another broadcasting is in progress, please wait!'))
         return redirect('broadcast')
 
     return HttpResponse(_("Method not allowed"), status=405)
