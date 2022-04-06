@@ -4,6 +4,7 @@ import glob
 import asyncio
 from bots.models import Bot
 from datetime import datetime
+import threading
 
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -15,14 +16,17 @@ from django.conf import settings
 from broadcast.broadcast import send_to_bots
 
 
-broadcasting_process = None
+broadcasting_thread = None
+_is_broadcasting = False
 
 
 def is_broadcasting():
-    return broadcasting_process and broadcasting_process.is_alive()
+    return _is_broadcasting
 
 
 def send_to_request_bots(message, image, bots_usernames):
+    global _is_broadcasting
+    _is_broadcasting = True
     print("*."*10, "sending to bots is starting")
     print("-_"*20)
     print(message)
@@ -37,6 +41,36 @@ def send_to_request_bots(message, image, bots_usernames):
         loop.close()
     finally:
         print("*."*10, "sending to bots is done")
+        _is_broadcasting = False
+
+
+def write_image(image):
+    for prev_img_path in glob.glob('staticfiles/telegram-image-to-send-*.png'):
+        print("prev image:", prev_img_path)
+        os.remove(prev_img_path)
+    now = datetime.now().strftime("%Y-%m-%d--%H-%M-%S")
+    image_file_name = f"telegram-image-to-send-{now}.png"
+    print("next image:", image_file_name)
+    image_path = settings.BASE_DIR / "staticfiles" / image_file_name
+    with open(image_path, 'wb+') as f:
+        for chunk in image.chunks():
+            f.write(chunk)
+    if settings.IS_LOCALHOST:
+        return None
+    return f"{os.environ.get('SITE_URL')}/static/{image_file_name}"
+
+
+def send_in_background(message, *, image, bots_usernames):
+    # source: https://stackoverflow.com/a/21945663/10891757
+    broadcasting_thread = threading.Thread(
+        target=send_to_request_bots,
+        args=(message,),
+        kwargs={
+            'image': image,
+            'bots_usernames': bots_usernames,
+        })
+    broadcasting_thread.daemon = True
+    broadcasting_thread.start()
 
 
 @login_required
@@ -56,23 +90,13 @@ def broadcast_page(request):
 @csrf_exempt
 def broadcast(request):
     if request.method == "POST":
-        global broadcasting_process
+        global broadcasting_thread
         password = request.POST.get("password")
         bots_usernames = request.POST.getlist("bot")
         message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
         if image:
-            for prev_img_path in glob.glob('staticfiles/telegram-image-to-send-*.png'):
-                print("prev image:", prev_img_path)
-                os.remove(prev_img_path)
-            now = str(datetime.now())
-            image_file_name = f"telegram-image-to-send-{now}.png"
-            print("next image:", image_file_name)
-            image_path = settings.BASE_DIR / "staticfiles" / image_file_name
-            with open(image_path, 'wb+') as f:
-                for chunk in image.chunks():
-                    f.write(chunk)
-            image = f"{os.environ.get('SITE_URL')}/static/{image_file_name}"
+            image = write_image(image)
         else:
             # an external link for an image, telethon will tell
             # telegram to fetch and send it itself
@@ -94,21 +118,8 @@ def broadcast(request):
             return redirect('broadcast')
 
         if not is_broadcasting():
-            # # source: https://stackoverflow.com/a/21945663/10891757
-            # broadcasting_process = multiprocessing.Process(
-            #     target=send_to_request_bots,
-            #     args=(message,),
-            #     kwargs={
-            #         'image': image,
-            #         'bots_usernames': bots_usernames,
-            #     })
-            # broadcasting_process.daemon = True
-            # broadcasting_process.start()
-            # messages.success(request, _(
-            #     'Message is being broadcasted, it may take some time'))
-            send_to_request_bots(message, image=image, bots_usernames=bots_usernames)
-            messages.success(request, _(
-                'Alhamdulilah! message is sent successfully'))
+            send_in_background(message, image=image,
+                               bots_usernames=bots_usernames)
         else:
             messages.error(request, _(
                 'Another broadcasting is in progress, please wait!'))
@@ -120,8 +131,8 @@ def broadcast(request):
 @csrf_exempt
 def cancel(request):
     if is_broadcasting():
-        broadcasting_process.kill()  # type: ignore
-        broadcasting_process.join()  # type: ignore
+        broadcasting_thread.kill()  # type: ignore
+        broadcasting_thread.join()  # type: ignore
         messages.success(request, _(
             'the previous running broadcasting was successfully canceled'))
     else:
