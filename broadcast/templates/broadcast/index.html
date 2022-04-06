@@ -6,9 +6,15 @@
 {% if is_broadcasting %}
 <div role="alert" class="alert alert-dismissible fade show alert-info">
   <p>Broadcasting is in progress right now...</p>
-  <a class="btn btn-danger" href="{% url 'broadcast_cancel' %}">Cancel</a>
+  <a class="btn btn-danger" href="{% url 'broadcast_cancel' %}">Cancel broadcasting</a>
 </div>
 {% endif %}
+
+<style>
+  form p {
+    margin-top: 2em;
+  }
+</style>
 
 <form class="d-grid gap-2" method="POST" enctype="multipart/form-data" action="{% url 'broadcast_message' %}">
     {% csrf_token%}
@@ -19,7 +25,7 @@
       style="min-height: 200px;"
     ></textarea>
 
-    <label>Optional image</label>
+    <p>Image [optional]</p>
 
     <input
       id="image"
@@ -37,9 +43,32 @@
       accept="image/*"
     />
 
+    <fieldset>
+      <p>Bots [all selected by default]</p>
+      <div class="form-group">
+        <select id="bots-multiselect" multiple class="form-control" name="bot">
+        {% for bot in bots %}
+          <option selected>{{bot.username}}</option>
+        {% endfor %}
+        </select>
+      </div>
+    </fieldset>
+
+    <!-- <fieldset> -->
+    <!--   <legend>Choose bots</legend> -->
+    <!--   {% for bot in bots %} -->
+    <!--   <div class="form-check"> -->
+    <!--     <input class="form-check-input" id="{{bot.username}} "type="checkbox" checked name="bots_usernames[{{bot.username}}]"/> -->
+    <!--     <label class="form-check-label" for="{{bot.username}}"> -->
+    <!--       {{bot.username}} -->
+    <!--     </label> -->
+    <!--   </div> -->
+    <!--   {% endfor %} -->
+    <!-- </fieldset> -->
+
     <!-- TODO: list all bots as checkboxes -->
 
-    <button type="submit" class="btn btn-primary col-lg-2 mt-4">Submit</button>
+    <button type="submit" class="btn btn-primary col-lg-2 mt-4">Send the message</button>
 </form>
 
 {% endblock content %}

@@ -21,13 +21,7 @@ def get_message_process(message, *, image):
             'caption': message}
 
     if django_settings.IS_LOCALHOST:
-        process = deque([
-            "/langen",
-            "📤 Mailing",
-            message_process,
-            '✅ Send',
-            "/langar",
-        ])
+        process = deque([message_process, ])
     else:
         process = deque([
             "/langen",
@@ -127,7 +121,7 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         recieved_message = event.message.message.split("\n")[
             0]  # first line only
         logging.info(f"[{bot_username}] recieved: " + recieved_message)
-        
+
         if error_occured or len(process) == 0 or recieved_message[0] == "❌":
             done = True
         else:

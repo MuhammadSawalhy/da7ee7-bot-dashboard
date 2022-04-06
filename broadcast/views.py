@@ -60,8 +60,7 @@ def broadcast(request):
     if request.method == "POST":
         global broadcasting_process
         password = request.POST.get("password")
-        bots_usernames = request.POST.get("bots")
-        bots_usernames = [bot.username for bot in Bot.objects.all()]
+        bots_usernames = request.POST.getlist("bot")
         message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
         if image:
