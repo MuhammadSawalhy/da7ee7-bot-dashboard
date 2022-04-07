@@ -30,9 +30,12 @@ def get_message_process(message, *, image, bot_username=None):
     else:
         process = deque([
             "/langen",
-            "📤 Mailing",
+            "/langen",
+            "/langen",
+            "/langen",
+            # "📤 Mailing",
             message_process,
-            '✅ Send',
+            # '✅ Send',
         ])
         if bot_username == "@Da7ee7_Civil_1st_Year_Bot":
             process.append("/langar")
@@ -69,12 +72,12 @@ async def send_to_bots(message, *, image, bots_usernames):
 def send_to_bots_sync(message, *, image, bots_usernames):
     global _is_broadcasting
     _is_broadcasting = True
-    print("*."*10, "sending to bots is starting")
-    print("-_"*20)
-    print(message)
-    print("-_"*20)
+    logging.info("*."*10, "sending to bots is starting")
+    logging.info("-_"*20)
+    logging.info(message)
+    logging.info("-_"*20)
     for bot_username in bots_usernames:
-        print("sending to", bot_username)
+        logging.info("sending to", bot_username)
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -82,7 +85,7 @@ def send_to_bots_sync(message, *, image, bots_usernames):
             message, image=image, bots_usernames=bots_usernames))
         loop.close()
     finally:
-        print("*."*10, "sending to bots is done")
+        logging.info("*."*10, "sending to bots is done")
         _is_broadcasting = False
 
 
@@ -158,7 +161,8 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         nonlocal done
         message = get_message()
         if type(message) is str:
-            logging.info(f"[{bot_username}] sending: " + message)
+            message_first_line = message.strip().split("\n")[0]
+            logging.info(f"[{bot_username}] sending: " + message_first_line)
             await telegram_client.send_message(bot_username, message)
             done = True
         elif type(message) is dict:
