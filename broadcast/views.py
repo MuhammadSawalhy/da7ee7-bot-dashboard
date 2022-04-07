@@ -65,6 +65,10 @@ def broadcast(request):
         bots_usernames = request.POST.getlist("bot")
         message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
+
+        if request.POST.get("bot") == "@all":
+            bots_usernames = [bot.username for bot in Bot.objects.all()]
+        
         if image:
             image = write_image(image)
         else:
