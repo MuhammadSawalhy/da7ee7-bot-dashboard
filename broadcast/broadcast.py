@@ -66,18 +66,24 @@ async def send_to_bots(message, *, image, bots_usernames):
                             telegram_client=telegram_client)
             )
             tasks.append(task)
-        await asyncio.wait(tasks, timeout=30)  # half a minute as a timeout
+        try:
+            while len(tasks):
+                # half a minute as a timeout
+                await asyncio.wait(tasks[:4], timeout=30)
+                tasks = tasks[4:]
+        except asyncio.TimeoutError:
+            logging.error('timeout excceeded while broadcasting')
 
 
 def send_to_bots_sync(message, *, image, bots_usernames):
     global _is_broadcasting
     _is_broadcasting = True
-    logging.info("*."*10, "sending to bots is starting")
+    logging.info("*."*10 + " sending to bots is starting")
     logging.info("-_"*20)
     logging.info(message)
     logging.info("-_"*20)
     for bot_username in bots_usernames:
-        logging.info("sending to", bot_username)
+        logging.info("sending to: " + bot_username)
     try:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
@@ -85,7 +91,7 @@ def send_to_bots_sync(message, *, image, bots_usernames):
             message, image=image, bots_usernames=bots_usernames))
         loop.close()
     finally:
-        logging.info("*."*10, "sending to bots is done")
+        logging.info("*."*10 + " sending to bots is done")
         _is_broadcasting = False
 
 
