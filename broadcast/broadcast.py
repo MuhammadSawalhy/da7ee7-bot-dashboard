@@ -30,12 +30,9 @@ def get_message_process(message, *, image, bot_username=None):
     else:
         process = deque([
             "/langen",
-            "/langen",
-            "/langen",
-            "/langen",
-            # "📤 Mailing",
+            "📤 Mailing",
             message_process,
-            # '✅ Send',
+            '✅ Send',
         ])
         if bot_username == "@Da7ee7_Civil_1st_Year_Bot":
             process.append("/langar")
@@ -66,13 +63,9 @@ async def send_to_bots(message, *, image, bots_usernames):
                             telegram_client=telegram_client)
             )
             tasks.append(task)
-        try:
-            while len(tasks):
-                # half a minute as a timeout
-                await asyncio.wait(tasks[:4], timeout=30)
-                tasks = tasks[4:]
-        except asyncio.TimeoutError:
-            logging.error('timeout excceeded while broadcasting')
+        # half a minute as a timeout
+        # FIXME: it onlt sends to 5 bots
+        await asyncio.wait(tasks, timeout=30)
 
 
 def send_to_bots_sync(message, *, image, bots_usernames):
