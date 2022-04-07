@@ -17,7 +17,7 @@ broadcasting_thread = None
 _is_broadcasting = False
 
 
-def get_message_process(message, *, image):
+def get_message_process(message, *, image, bot_username=None):
     message_process = message
     if image:
         message_process = {
@@ -33,8 +33,9 @@ def get_message_process(message, *, image):
             "📤 Mailing",
             message_process,
             '✅ Send',
-            "/langar",
         ])
+        if bot_username == "@Da7ee7_Civil_1st_Year_Bot":
+            process.append("/langar")
 
     return process
 
@@ -90,7 +91,8 @@ def send_to_bots_in_background(message, *, image, bots_usernames):
     global broadcasting_thread
     # a layer of safty here
     if is_broadcasting():
-        raise Exception(_("Can't broadcast new message while another broadcasting is running"))
+        raise Exception(
+            _("Can't broadcast new message while another broadcasting is running"))
     broadcasting_thread = threading.Thread(
         target=send_to_bots_sync,
         args=(message,),
@@ -108,7 +110,8 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
     # should stop the next process step
     error_occured = False
     done = False
-    process = get_message_process(message, image=image)
+    process = get_message_process(
+        message, image=image, bot_username=bot_username)
 
     def get_message():
         """ get the next process step, return None if an error occured occured
