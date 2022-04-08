@@ -3,12 +3,15 @@ import asyncio
 import logging
 import threading
 
+from datetime import datetime
 from collections import deque
+from dateutil.relativedelta import relativedelta
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from django.conf import settings as django_settings
 from django.utils.translation import gettext_lazy as _
 
+debouncing_time = 0.5 # half a second
 TELETHON_SESSION = os.environ.get("TELETHON_SESSION") or ""
 TELEGRAM_API_ID = int(os.environ.get("TELEGRAM_API_ID") or 0)
 TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
@@ -26,13 +29,18 @@ def get_message_process(message, *, image, bot_username=None):
             'caption': message}
 
     if django_settings.IS_LOCALHOST:
-        process = deque([message_process, ])
+        process = deque([
+            "/langen",
+            "📤 Mailing",
+            message_process,
+            "🚫 Cancel",
+        ])
     else:
         process = deque([
             "/langen",
             "📤 Mailing",
             message_process,
-            '✅ Send',
+            "✅ Send",
         ])
         if bot_username == "@Da7ee7_Civil_1st_Year_Bot":
             process.append("/langar")
@@ -114,6 +122,7 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
     done = False
     process = get_message_process(
         message, image=image, bot_username=bot_username)
+    recieved_messages_history = []
 
     def get_message():
         """ get the next process step, return None if an error occured occured
@@ -155,14 +164,13 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         process.appendleft({'type': 'click-button', 'name': button_name})
         error_occured = True
 
-    async def send_message(telegram_client, event: events.NewMessage.Event | None = None):
+    async def send_message(event: events.NewMessage.Event | None = None):
         nonlocal done
         message = get_message()
         if type(message) is str:
             message_first_line = message.strip().split("\n")[0]
             logging.info(f"[{bot_username}] sending: " + message_first_line)
             await telegram_client.send_message(bot_username, message)
-            done = True
         elif type(message) is dict:
             if message["type"] == "file":
                 logging.info(
@@ -182,8 +190,15 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         if error_occured or len(process) == 0 or recieved_message[0] == "❌":
             done = True
         else:
-            await send_message(telegram_client, event)
+            recieved_messages_history.append([datetime.now(), event])
 
-    await send_message(telegram_client)
+    await send_message()
     while not done:
-        await asyncio.sleep(1)
+        if recieved_messages_history:
+            last_recieved = recieved_messages_history[-1]
+            debouncing_relative_datetime = relativedelta(seconds=int(debouncing_time),
+                                                         microseconds=int((debouncing_time-int(debouncing_time)) * 1e6))
+            if datetime.now() > last_recieved[0] + debouncing_relative_datetime:
+                recieved_messages_history = []
+                await send_message(last_recieved[1])
+        await asyncio.sleep(debouncing_time)
