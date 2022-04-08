@@ -4,7 +4,6 @@ import logging
 import threading
 
 from collections import deque
-from utils import debounce_async
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
 from django.conf import settings as django_settings
@@ -156,8 +155,7 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         process.appendleft({'type': 'click-button', 'name': button_name})
         error_occured = True
 
-    @debounce_async(0.5)
-    async def send_message(event: events.NewMessage.Event | None = None):
+    async def send_message(telegram_client, event: events.NewMessage.Event | None = None):
         nonlocal done
         message = get_message()
         if type(message) is str:
@@ -184,8 +182,8 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         if error_occured or len(process) == 0 or recieved_message[0] == "❌":
             done = True
         else:
-            await send_message(event)
+            await send_message(telegram_client, event)
 
-    await send_message()
+    await send_message(telegram_client)
     while not done:
         await asyncio.sleep(1)
