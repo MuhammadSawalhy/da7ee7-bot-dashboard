@@ -71,8 +71,6 @@ async def send_to_bots(message, *, image, bots_usernames):
                             telegram_client=telegram_client)
             )
             tasks.append(task)
-        # half a minute as a timeout
-        # FIXME: it onlt sends to 5 bots
         await asyncio.wait(tasks, timeout=30)
 
 
