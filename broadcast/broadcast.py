@@ -6,10 +6,11 @@ import threading
 from collections import deque
 from utils import debounce_async
 from telethon import TelegramClient, events
+from telethon.sessions import StringSession
 from django.conf import settings as django_settings
 from django.utils.translation import gettext_lazy as _
 
-TELETHON_SESSION = os.environ.get("TELETHON_SESSION") or "default"
+TELETHON_SESSION = os.environ.get("TELETHON_SESSION") or ""
 TELEGRAM_API_ID = int(os.environ.get("TELEGRAM_API_ID") or 0)
 TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
 
@@ -50,7 +51,7 @@ def cancel_broadcasting():
 
 
 def get_telegram_client():
-    return TelegramClient(f'telethon.{TELETHON_SESSION}', TELEGRAM_API_ID, TELEGRAM_API_HASH)
+    return TelegramClient(StringSession(TELETHON_SESSION), TELEGRAM_API_ID, TELEGRAM_API_HASH)
 
 
 async def send_to_bots(message, *, image, bots_usernames):
