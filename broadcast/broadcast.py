@@ -3,6 +3,7 @@ import asyncio
 import logging
 import threading
 
+from itertools import chain
 from datetime import datetime
 from collections import deque
 from dateutil.relativedelta import relativedelta
@@ -11,7 +12,7 @@ from telethon.sessions import StringSession
 from django.conf import settings as django_settings
 from django.utils.translation import gettext_lazy as _
 
-debouncing_time = 0.5 # half a second
+debouncing_time = 0.5  # half a second
 TELETHON_SESSION = os.environ.get("TELETHON_SESSION") or ""
 TELEGRAM_API_ID = int(os.environ.get("TELEGRAM_API_ID") or 0)
 TELEGRAM_API_HASH = os.environ.get("TELEGRAM_API_HASH") or ""
@@ -132,34 +133,35 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         return message
 
     async def click_inline_button(button_name: str, event: events.NewMessage.Event | None):
-        global error_occured
+        nonlocal error_occured
         if not event:
             logging.error(
-                bot_username + "an event is required to click an inline button")
+                f"[{bot_username}] an event is required to click an inline button")
             error_occured = True
             return
 
         buttons = await event.get_buttons()
 
         if not buttons:
-            for buttons_row in buttons:
-                for button in buttons_row:
-                    if button_name == button.button.text:
-                        logging.info(bot_username +
-                                     "clicking: " + button.button.text)
-                        await button.click()
-                        return
+            logging.error(f"[{bot_username}] can't find any button to click")
+            error_occured = True
+            return
+
+        # chain here to use one `for` loop rather than two
+        for button in chain.from_iterable(buttons):
+            if button_name == button.button.text:
+                logging.info(bot_username +
+                             "clicking: " + button.button.text)
+                await button.click()
+                return
 
         all_buttons = ", ".join(
             [", ".join([button.button.text for button in buttons_row])
              for buttons_row in buttons] if buttons else [])
-        logging.warning(
-            bot_username + "can't find the button to click, " + button_name)
-        # all the buttons chained
-        logging.warning(
+        logging.error(
+            f"[{bot_username}] can't find the button to click, " + button_name)
+        logging.error(
             f"[{bot_username}] here are the buttons: " + all_buttons)
-        logging.warning(f"[{bot_username}] waiting for the next message")
-        process.appendleft({'type': 'click-button', 'name': button_name})
         error_occured = True
 
     async def send_message(event: events.NewMessage.Event | None = None):
@@ -195,7 +197,7 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         if recieved_messages_history:
             last_recieved = recieved_messages_history[-1]
             debouncing_relative_datetime = relativedelta(seconds=int(debouncing_time),
-                                                         microseconds=int((debouncing_time-int(debouncing_time)) * 1e6))
+                                                         microseconds=int((debouncing_time % 1) * 1e6))
             if datetime.now() > last_recieved[0] + debouncing_relative_datetime:
                 recieved_messages_history = []
                 await send_message(last_recieved[1])
