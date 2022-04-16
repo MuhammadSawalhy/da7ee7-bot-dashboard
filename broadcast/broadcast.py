@@ -114,14 +114,15 @@ def send_to_bots_in_background(message, *, image, bots_usernames):
     broadcasting_thread.start()
 
 
+class MODES(enum.Enum):
+    broadcasting = "broadcasting"
+    settling_error = "settling_error"
+
+
 async def send_to_bot(message, *, image, bot_username, telegram_client):
     # we need this global `error_occured` because we are running
     # different threads and async  code if an error occured,  we
     # should stop the next process step
-
-    class MODES(enum.Enum):
-        broadcasting = "broadcasting"
-        settling_error = "settling_error"
 
     mode = MODES.broadcasting
     error_occured = False
@@ -157,10 +158,8 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         # chain here to use one `for` loop rather than two
         for button in chain.from_iterable(buttons):
             if button_name == button.button.text:
-                logging.info(bot_username +
-                             "clicking: " + button.button.text)
-                await button.click()
-                return
+                logging.info(bot_username + "clicking: " + button.button.text)
+                return await button.click()
 
         all_buttons = ", ".join(
             [", ".join([button.button.text for button in buttons_row])
@@ -177,15 +176,15 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         if type(message) is str:
             message_first_line = message.strip().split("\n")[0]
             logging.info(f"[{bot_username}] sending: " + message_first_line)
-            await telegram_client.send_message(bot_username, message)
-        elif type(message) is dict:
-            if message["type"] == "file":
-                logging.info(
-                    f"[{bot_username}] file sending: " + message['file'])
-                await telegram_client.send_file(bot_username, file=message['file'], caption=message['caption'])
-            elif message["type"] == "click-button":
-                button_name = message["name"]
-                await click_inline_button(button_name, event)
+            return await telegram_client.send_message(bot_username, message)
+        if type(message) is not dict:
+            raise Exception("unexpected type of message")
+        if message["type"] == "file":
+            logging.info(f"[{bot_username}] file sending: " + message['file'])
+            return await telegram_client.send_file(bot_username, file=message['file'], caption=message['caption'])
+        elif message["type"] == "click-button":
+            button_name = message["name"]
+            return await click_inline_button(button_name, event)
 
     @telegram_client.on(events.NewMessage(from_users=bot_username))
     async def _(event):
