@@ -1,4 +1,5 @@
 import os
+import enum
 import asyncio
 import logging
 import threading
@@ -21,7 +22,7 @@ broadcasting_thread = None
 _is_broadcasting = False
 
 
-def get_message_process(message, *, image, bot_username=None):
+def get_broadcating_process(message, *, image, bot_username=None):
     message_process = message
     if image:
         message_process = {
@@ -117,9 +118,15 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
     # we need this global `error_occured` because we are running
     # different threads and async  code if an error occured,  we
     # should stop the next process step
+
+    class MODES(enum.Enum):
+        broadcasting = "broadcasting"
+        settling_error = "settling_error"
+
+    mode = MODES.broadcasting
     error_occured = False
     done = False
-    process = get_message_process(
+    process = get_broadcating_process(
         message, image=image, bot_username=bot_username)
     recieved_messages_history = []
 
@@ -182,15 +189,25 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
 
     @telegram_client.on(events.NewMessage(from_users=bot_username))
     async def _(event):
-        nonlocal done
+        nonlocal done, mode
+        limit_of_active_mailing = "⚠️ You have reached the limit of active mailings."
         recieved_message = event.message.message.split("\n")[
             0]  # first line only
         logging.info(f"[{bot_username}] recieved: " + recieved_message)
+        recieved_messages_history.append((datetime.now(), event))
 
-        if error_occured or len(process) == 0 or recieved_message[0] == "❌":
+        if error_occured or recieved_message[0] == "❌" or recieved_message == limit_of_active_mailing:
+            if not mode == MODES.broadcasting:
+                return
+            # this is a solution that reconcile and settle the issue
+            # and is specified for the broadcasting process to for all cases
+            process.clear()
+            process.append("🔙 Back")
+            process.append("🚫 Cancel")
+            mode = MODES.settling_error
+
+        if len(process) == 0:
             done = True
-        else:
-            recieved_messages_history.append([datetime.now(), event])
 
     await send_message()
     while not done:
