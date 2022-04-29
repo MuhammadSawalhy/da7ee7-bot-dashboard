@@ -2,7 +2,7 @@ import os
 import re
 import glob
 from bots.models import Bot
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.http import HttpResponse
 from django.shortcuts import render, redirect
@@ -12,6 +12,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from broadcast.broadcast import send_to_bots_in_background, is_broadcasting, cancel_broadcasting
+
+
+last_broadcast_date = datetime.now() - timedelta(days=1)
 
 
 def write_image(image):
@@ -60,15 +63,22 @@ def broadcast_page(request):
 
 @csrf_exempt
 def broadcast(request):
+    global last_broadcast_date
     if request.method == "POST":
         password = request.POST.get("password")
         bots_usernames = request.POST.getlist("bot")
         message = request.POST.get("message") or ""
         image = request.FILES.get("image") or None
 
+        if datetime.now() - last_broadcast_date < timedelta(minutes=10):
+            messages.error(request, _(
+                'you have to wait at least 10 minutes from last broadcast'))
+            return redirect('broadcast')
+        last_broadcast_date = datetime.now()
+
         if request.POST.get("bot") == "@all":
             bots_usernames = [bot.username for bot in Bot.objects.all()]
-        
+
         if image:
             image = write_image(image)
         else:
