@@ -2,7 +2,15 @@
 
 منصة لتسهيل وأتمتة التعامل مع أكثر من مراسلة آلية في ذات الوقت.
 
-<video src='./demo.mp4' />
+
+
+
+
+https://user-images.githubusercontent.com/42011920/165993795-3dae629e-0808-43a4-ad9b-70e8a477b3b1.mp4
+
+
+
+
 
 # الرخصة
 
