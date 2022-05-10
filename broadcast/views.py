@@ -65,6 +65,7 @@ def broadcast_page(request):
 def broadcast(request):
     global last_broadcast_date
     if request.method == "POST":
+        print("User %s is broadcasting" % request.user.username)
         password = request.POST.get("password")
         bots_usernames = request.POST.getlist("bot")
         message = request.POST.get("message") or ""
