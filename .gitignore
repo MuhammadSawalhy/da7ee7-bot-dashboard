@@ -2,6 +2,8 @@ env/
 __pycache__/
 
 .env
+db.sqlite
+
 # telethon.session*
 *.session-journal
 staticfiles/

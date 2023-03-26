@@ -193,7 +193,7 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
         recieved_message = event.message.message.split("\n")[
             0]  # first line only
         logging.info(f"[{bot_username}] recieved: " + recieved_message)
-        recieved_messages_history.append((datetime.now(), event))
+        recieved_messages_history.append({ "date": datetime.now(), "event": event })
 
         if error_occured or recieved_message[0] == "❌" or recieved_message == limit_of_active_mailing:
             if not mode == MODES.broadcasting:
@@ -214,7 +214,7 @@ async def send_to_bot(message, *, image, bot_username, telegram_client):
             last_recieved = recieved_messages_history[-1]
             debouncing_relative_datetime = relativedelta(seconds=int(debouncing_time),
                                                          microseconds=int((debouncing_time % 1) * 1e6))
-            if datetime.now() > last_recieved[0] + debouncing_relative_datetime:
+            if datetime.now() > last_recieved["date"] + debouncing_relative_datetime:
                 recieved_messages_history = []
-                await send_message(last_recieved[1])
+                await send_message(last_recieved["event"])
         await asyncio.sleep(debouncing_time)

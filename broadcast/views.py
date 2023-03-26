@@ -75,7 +75,6 @@ def broadcast(request):
             messages.error(request, _(
                 'you have to wait at least 10 minutes from last broadcast'))
             return redirect('broadcast')
-        last_broadcast_date = datetime.now()
 
         if request.POST.get("bot") == "@all":
             bots_usernames = [bot.username for bot in Bot.objects.all()]
@@ -98,6 +97,7 @@ def broadcast(request):
             return response
 
         if not is_broadcasting():
+            last_broadcast_date = datetime.now()
             send_to_bots_in_background(
                 message, image=image, bots_usernames=bots_usernames)
         else:
