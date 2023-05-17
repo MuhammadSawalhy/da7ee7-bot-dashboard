@@ -4,11 +4,7 @@
 
 
 
-
-
-https://user-images.githubusercontent.com/42011920/165993795-3dae629e-0808-43a4-ad9b-70e8a477b3b1.mp4
-
-
+https://github.com/MuhammadSawalhy/da7ee7-bot-dashboard/assets/42011920/e7c9aa80-3f4e-4751-9389-42e3f9dab744
 
 
 
